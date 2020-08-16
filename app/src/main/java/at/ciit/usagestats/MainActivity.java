@@ -1,7 +1,7 @@
 package at.ciit.usagestats;
 /*
-  Created by Amjad on 16,August,2020
- */
+  Created by Javatraining www.ciit.at (Amjad) on 16,August,2020
+*/
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -28,6 +28,9 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static android.app.AppOpsManager.MODE_ALLOWED;
+import static android.app.AppOpsManager.OPSTR_GET_USAGE_STATS;
+
 public class MainActivity extends AppCompatActivity {
 
     Button enableBtn, showBtn;
@@ -45,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
         usageTv =  findViewById(R.id.usage_tv);
         appsList =  findViewById(R.id.apps_list);
 
-        this.loadUsage();
+        this.loadStatistics();
     }
 
 
@@ -56,13 +59,11 @@ public class MainActivity extends AppCompatActivity {
         if (getGrantStatus()) {
             showHideWithPermission();
             showBtn.setOnClickListener(view -> {
-                // Click action
-                loadUsage();
+                loadStatistics();
             });
         } else {
             showHideNoPermission();
             enableBtn.setOnClickListener(view -> {
-                // Click action
                 startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS));
             });
         }
@@ -72,10 +73,9 @@ public class MainActivity extends AppCompatActivity {
     /**
      * load the usage stats for last 24h
      */
-    public void loadUsage() {
+    public void loadStatistics() {
         UsageStatsManager usm = (UsageStatsManager) this.getSystemService(USAGE_STATS_SERVICE);
-        long time = System.currentTimeMillis();
-        List<UsageStats> appList = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, time - 1000 * 1000, time);
+        List<UsageStats> appList = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY,  System.currentTimeMillis() - 1000*3600*24,  System.currentTimeMillis());
 
         // Group the usageStats by application and sort them by total time in foreground
         if (appList != null && appList.size() > 0) {
@@ -133,13 +133,13 @@ public class MainActivity extends AppCompatActivity {
         AppOpsManager appOps = (AppOpsManager) getApplicationContext()
                 .getSystemService(Context.APP_OPS_SERVICE);
 
-        int mode = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,
+        int mode = appOps.checkOpNoThrow(OPSTR_GET_USAGE_STATS,
                 android.os.Process.myUid(), getApplicationContext().getPackageName());
 
         if (mode == AppOpsManager.MODE_DEFAULT) {
             return (getApplicationContext().checkCallingOrSelfPermission(android.Manifest.permission.PACKAGE_USAGE_STATS) == PackageManager.PERMISSION_GRANTED);
         } else {
-            return (mode == AppOpsManager.MODE_ALLOWED);
+            return (mode == MODE_ALLOWED);
         }
     }
 

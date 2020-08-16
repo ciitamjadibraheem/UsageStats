@@ -1,7 +1,7 @@
 package at.ciit.usagestats;
 /*
-  Created by Amjad on 16,August,2020
- */
+  Created by Javatraining www.ciit.at (Amjad) on 16,August,2020
+*/
 import android.graphics.drawable.Drawable;
 
 public class App {
