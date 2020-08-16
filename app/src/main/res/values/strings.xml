@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Usage Stats</string>
+    <string name="permission_description">In order to allow this application to collect your apps usage information, you need to allow "Package Usage Stats" permission from the Settings application.\nYou can cancel this permission anytime.</string>
+</resources>
