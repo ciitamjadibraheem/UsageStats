@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
+import android.net.IpSecManager;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.View;
@@ -22,7 +23,9 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
@@ -58,14 +61,10 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
         if (getGrantStatus()) {
             showHideWithPermission();
-            showBtn.setOnClickListener(view -> {
-                loadStatistics();
-            });
+            showBtn.setOnClickListener(view -> loadStatistics());
         } else {
             showHideNoPermission();
-            enableBtn.setOnClickListener(view -> {
-                startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS));
-            });
+            enableBtn.setOnClickListener(view -> startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)));
         }
     }
 
@@ -76,21 +75,26 @@ public class MainActivity extends AppCompatActivity {
     public void loadStatistics() {
         UsageStatsManager usm = (UsageStatsManager) this.getSystemService(USAGE_STATS_SERVICE);
         List<UsageStats> appList = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY,  System.currentTimeMillis() - 1000*3600*24,  System.currentTimeMillis());
+        appList = appList.stream().filter(app -> app.getTotalTimeInForeground() > 0).collect(Collectors.toList());
 
         // Group the usageStats by application and sort them by total time in foreground
-        if (appList != null && appList.size() > 0) {
-            SortedMap<Long, UsageStats> mySortedMap = new TreeMap<>();
+        if (appList.size() > 0) {
+            Map<String, UsageStats> mySortedMap = new TreeMap<>();
             for (UsageStats usageStats : appList) {
-                mySortedMap.put(usageStats.getTotalTimeInForeground(), usageStats);
+                mySortedMap.put(usageStats.getPackageName(), usageStats);
             }
             showAppsUsage(mySortedMap);
         }
     }
 
 
-    public void showAppsUsage(SortedMap<Long, UsageStats> mySortedMap) {
+    public void showAppsUsage(Map<String, UsageStats> mySortedMap) {
+    //public void showAppsUsage(List<UsageStats> usageStatsList) {
         ArrayList<App> appsList = new ArrayList<>();
-        List<UsageStats> usageStatsList = mySortedMap.values().stream().filter(this::isAppInfoAvailable).collect(Collectors.toList());
+        List<UsageStats> usageStatsList = new ArrayList<>(mySortedMap.values());
+
+        // sort the applications by time spent in foreground
+        Collections.sort(usageStatsList, (z1, z2) -> Long.compare(z1.getTotalTimeInForeground(), z2.getTotalTimeInForeground()));
 
         // get total time of apps usage to calculate the usagePercentage for each app
         long totalTime = usageStatsList.stream().map(UsageStats::getTotalTimeInForeground).mapToLong(Long::longValue).sum();
@@ -99,10 +103,18 @@ public class MainActivity extends AppCompatActivity {
         for (UsageStats usageStats : usageStatsList) {
             try {
                 String packageName = usageStats.getPackageName();
-                ApplicationInfo ai = getApplicationContext().getPackageManager().getApplicationInfo(packageName, 0);
-                Drawable icon = getApplicationContext().getPackageManager().getApplicationIcon(ai);
-                String appName = getApplicationContext().getPackageManager().getApplicationLabel(ai).toString();
-                String usageDuration = getDurationBreakdown(usageStats.getTotalTimeInForeground());
+                Drawable icon = getDrawable(R.drawable.no_image);
+                String[] packageNames = packageName.split("\\.");
+                String appName = packageNames[packageNames.length-1].trim();
+
+
+                if(isAppInfoAvailable(usageStats)){
+                    ApplicationInfo ai = getApplicationContext().getPackageManager().getApplicationInfo(packageName, 0);
+                    icon = getApplicationContext().getPackageManager().getApplicationIcon(ai);
+                     appName = getApplicationContext().getPackageManager().getApplicationLabel(ai).toString();
+                }
+
+                String usageDuration = getDurationBreakdown(usageStats.getTotalTimeInForeground() * 10);
                 int usagePercentage = (int) (usageStats.getTotalTimeInForeground() * 100 / totalTime);
 
                 App usageStatDTO = new App(icon, appName, usagePercentage, usageDuration);
@@ -152,7 +164,6 @@ public class MainActivity extends AppCompatActivity {
             getApplicationContext().getPackageManager().getApplicationInfo(usageStats.getPackageName(), 0);
             return true;
         } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
             return false;
         }
     }
