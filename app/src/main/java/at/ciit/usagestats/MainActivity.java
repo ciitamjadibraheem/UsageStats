@@ -114,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
                      appName = getApplicationContext().getPackageManager().getApplicationLabel(ai).toString();
                 }
 
-                String usageDuration = getDurationBreakdown(usageStats.getTotalTimeInForeground() * 10);
+                String usageDuration = getDurationBreakdown(usageStats.getTotalTimeInForeground());
                 int usagePercentage = (int) (usageStats.getTotalTimeInForeground() * 100 / totalTime);
 
                 App usageStatDTO = new App(icon, appName, usagePercentage, usageDuration);
