@@ -16,5 +16,4 @@ Twitter: https://twitter.com/CIIT_at
 
 LinkedIn: https://www.linkedin.com/company/ciit-gmbh/
 
-
 ![Screenshot](ciit_usage_stats.png)
